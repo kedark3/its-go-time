@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+	"runtime"
+)
 
 // Interestingly data types come after the variable name, vs like in Java/C/C++
 func add(x int, y int) int {
@@ -49,16 +53,19 @@ func factorial(i int) int {
 
 // Sqrt : returns Sqrt of given number
 func Sqrt(x float64) float64 {
-	z := 1.0
-	for i := 0; i < 10; i++ {
-		fmt.Println(z)
+	z := 3.0
+	//	for i := 0; i < 10; i++ {
+	//	fmt.Println(z)
+	//z -= (z*z - x) / (2 * z)
+	//}
+	newZ := 0.0
+	for {
 		z -= (z*z - x) / (2 * z)
+		if math.Abs(z-newZ) < 1e-15 {
+			break
+		}
+		newZ = z
 	}
-	// for newZ != z {
-	// 	fmt.Println(z, newZ)
-	// 	newZ = z
-	// 	z -= (z*z - x) / (2 * z)
-	// }
 	return z
 }
 
@@ -104,4 +111,18 @@ func main() {
 		}
 	*/
 
+	// Switch Case - Good ol' C language - brings back my memories
+	switch os := runtime.GOOS; os {
+	case "darwin":
+		fmt.Println("OS X.")
+	case "linux":
+		fmt.Println("My Penguine")
+	default:
+		fmt.Printf("%s.\n", os)
+	}
+	// Implement nostalgic calculator
+	// for {
+	// 	fmt.
+
+	// }
 }
