@@ -2,6 +2,7 @@ package main
 
 import "fmt"
 
+// NOTE: Pointers in GoLang are pretty much exactly what you'd see in C.
 func main() {
 	var p *int
 
