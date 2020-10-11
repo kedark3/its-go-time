@@ -12,6 +12,33 @@ func main() {
 
 }
 
+func twoSumTwoPointersSortedArray(numbers []int, target int) []int {
+	// Since the input is sorted in increasing order
+	// we use two pointers traversing over the slice
+	lo, hi := 0, len(numbers)-1
+	for i := 0; i < len(numbers); i++ {
+		// if lo and hi are same
+		// we need to break out with no solution
+		if lo == hi {
+			break
+		} else if numbers[lo]+numbers[hi] == target {
+			// if we find solution we return it
+			// but add +1 as we need to have 1 based indices
+			return []int{lo + 1, hi + 1}
+		} else if numbers[lo]+numbers[hi] < target {
+			// if addition is less than target
+			// we need to increase `lo` by one
+			lo++
+		} else if numbers[lo]+numbers[hi] > target {
+			// if addition is less than target
+			// we need to decrease `hi` by one
+			hi--
+		}
+
+	}
+	return []int{}
+}
+
 func twoSumBruteForce(nums []int, target int) []int {
 	r := make([]int, 2, 2)
 	for i := 0; i < len(nums); i++ {
