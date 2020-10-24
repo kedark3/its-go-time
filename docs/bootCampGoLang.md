@@ -1,3 +1,4 @@
+Based on [Free GoLang Bootcamp](https://www.youtube.com/watch?v=YS4e4q9oBaU*)
 ## Why was Go Created?
 
 **Python**: Easy to use but interpreted hence Slow
@@ -1008,8 +1009,98 @@ type myStruct struct{
 
 # Functions
 
+- GoLang always has to have `package main` and has to have `func main()` that doesn't return anything.
+- Functions are declared with `func` keyword.
+- Names are `PascalCase` or `camelCase` for distinguishing private vs public functions.
+- Function parameters are added between `()` as `func name(varName type)`
+- If function returns values are appended at the end as `func name(varName type) returnType`
+- Multiple parameters can be passed as `func name(v1 type, v2 type)`
+- If all parameters are of same type `func name(v1, v2 type)` is allowed
+- If you change value of variable within a function, the variable will not be modified in calling function, as golang passes values by copy, unless the variable passed is a pointer or reference type.
+- Passing a large datastructure is better to be passed by pointers as long as you are careful, so that it gives you performance improvements.
+- If a function can take variable number of parameters, you can achieve that using `func name(varName ....type)` telling the compiler that this function takes variable number of args of type `type`, we receive data as slice.
+- The variable number of parameters as shown above are called _variadic params_ and they always have to be at the end of function signature, as `func
+(var1 type, var2 type, var3 ...type)` where `var3`  is a variadic parameter.
+- Golang allows return value to be `*type` and function can return `&data` and calling function can dereference it using `*data`. In many other languages, this maybe a risky operation as called function memory stack would be deleted once execution is finished and you will be pointing to the data that doesn't exists or been deleted, but in the GoLang this kind of return is recognized by go runtime and data is copied into heap - which is shared memory storage accessible to your program.
+- _Named return values_ is another feature that you have, where you can do:
+```go
+func name(var1 type) (result type){
+    // you have access to `result` as local variable
+    return // no need to write result as name here, go runtime knows you are returning result although this can be confusing for the reading in large/long functions
+}
+```
+
+- We can have multiple return values as:
+```go
+// this is very common/idiomatic way to write functions
+func divide(a, b float64)(float64, error){
+    if b == 0.0 {
+        return 0.0, fmt.Errorf("Cannot divide by zero")
+    }
+    return a/b, nil
+}
+
+```
+
+## Anonymous functions
+
+- This kind of function is created once and used once, that's it.
+```go
+func main(){
+
+    func(){
+        fmt.Println("Hello from anonymous function")
+    }() // call it immediately, if not passed, compiler says "Function evaluated but not used"
+    i := 42
+    func(i int){
+        fmt.Println("Inside anon func with `i`", i)
+    }(i) // we can also have params
+    // assign to variable
+    f := func (){
+        fmt.Println("Hello go ")
+    }
+    // assign to variable - verbose version
+    var f2 func() := func (){
+        fmt.Println("Hello go ")
+    }
+
+    var divide func(int, int)(int, error)
+    divide = func(a,b int) (int, error){
+        // do things
+    }
+    d, err := divide(25,5) // this is how we will call divide function
+    if err != nil{
+        return
+    }
+    fmt.Println(d)
+}
+```
 
 
-Based on [Free GoLang Bootcamp](https://www.youtube.com/watch?v=YS4e4q9oBaU*)
+## Methods
+
+- This are functions that are called on an instance/object/variable of some type struct.
+
+```go
+func main(){
+    g := greeter{
+        greeting: "Hello",
+        name: "Go"
+    }
+    g.greet()
+}
+
+type greeter struct{
+    greeting string
+    name string
+}
+
+func (g greeter) greet(){ // value receiver as `g` is `greeter` not `*greeter`, so you receive copy of greeter object and not actual object
+    fmt.Println(g.greeting, g.name)
+}
 
 
+func (g *greeter) greet(){ // pointer receiver as `g` is `*greeter` so you receive actual object and any modifications made here reflect in original object, although we will still call it as g.greet()
+    fmt.Println(g.greeting, g.name)
+}
+```
