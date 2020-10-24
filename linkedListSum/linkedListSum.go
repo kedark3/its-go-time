@@ -1,4 +1,4 @@
-package linkedlistsum
+package main
 
 import "fmt"
 
@@ -8,6 +8,37 @@ import "fmt"
 type ListNode struct {
 	Val  int
 	Next *ListNode
+}
+
+func (l *ListNode) addItem(item int) error {
+	newNode := &ListNode{item, nil}
+
+	if l.Next == nil {
+		l.Next = newNode
+	} else {
+		currentNode := l
+		for currentNode.Next != nil {
+			currentNode = currentNode.Next
+		}
+		currentNode.Next = newNode
+	}
+	return nil
+}
+
+func (l *ListNode) printAll() error {
+	currentNode := l
+	if currentNode == nil {
+		fmt.Println("LinkedList is Empty")
+	}
+	for {
+		fmt.Printf("%+v ->", currentNode.Val)
+		currentNode = currentNode.Next
+		if currentNode.Next == nil {
+			fmt.Printf("%+v", currentNode.Val)
+			break
+		}
+	}
+	return nil
 }
 
 func addTwoNumbers(l1 *ListNode, l2 *ListNode) *ListNode {
@@ -53,13 +84,26 @@ func lenOfLinkedList(l *ListNode) int {
 	var counter int
 	for {
 		counter++
-		fmt.Println(currentNode.Val)
+		// fmt.Println(currentNode.Val)
 		currentNode = currentNode.Next
 		if currentNode.Next == nil {
-			fmt.Printf("%+v ", currentNode.Val)
+			// fmt.Printf("%+v ", currentNode.Val)
 			counter++
 			break
 		}
 	}
 	return counter
+}
+
+func main() {
+	newList := &ListNode{}
+	head := newList
+	fmt.Println("Adding new items to LinkedList")
+	for _, val := range []int{1, 2, 4, 8, 16, 32} {
+		newList.addItem(val)
+	}
+	fmt.Println()
+	newList.printAll()
+	fmt.Println()
+	fmt.Println(lenOfLinkedList(head))
 }

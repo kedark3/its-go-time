@@ -368,10 +368,648 @@ Syntax 2:
 - Map has [keys]values of [type1]type2
 - Map keys have to be able to be tested for equality, so map key can't be a slice
 
+- Declaration syntax:
+```go
+map1 := make(map[string]int) // use this if you don't want to add values to map immediately
+
+// Alternative syntax
+
+map1 := map[string]int{
+    "a":1,
+    "b":2,
+    "c":3,
+}
+
+```
+- Accessing or modifying values:
+```go
+
+fmt.Println(map1["b"])
+
+map1["d"] = 4
+```
+- **NOTE:** Iterating over Map is not ordered, so reading map does not guarantee any order.
+- Deleting values from map:
+```go
+delete(map1, "c")
+
+fmt.Println(map1["c"]) // now it prints 0 even if the "c" is deleted, which is incorrect
+
+// Safer way is
+
+pop, ok := map1["c"]
+
+fmt.Println(map1["c"], ok) // this tells us with ok=false and tells us key is missing
+```
+
+- Checking length:
+```go
+fmt.Println(len(map1)) // prints length i.e. number of items in map
+```
+
+- Passing maps around:
+
+```go
+// if you do this
+map2 := map1
+
+delete(map2, "a")
+
+//then print both
+fmt.Println(map1)
+fmt.Println(map2) // both of them will be missing key "a" as map2 just points to map1
+
+```
+
 # Structs
 
+- Declaration:
+```go
+// Dr. Who
+type Doctor struct{
+    number int
+    actorName string
+    companions []string
+}
+```
+
+- Initialization:
+
+```go
+
+func main(){
+    aDoctor := Doctor{
+        number: 3,
+        actorName: "John Pertwee",
+        companions: []string{
+            "Liz",
+            "Jo",
+            "Sarah",
+        }
+    }
+
+    fmt.Println(aDoctor)
+    fmt.Println(aDoctor.actorName)
+    fmt.Println(aDoctor.companions[1]) // extract item from Slice
+
+}
+```
+
+- You can also ignore a field from struct by omitting it:
+
+```go
+type Doctor struct{
+    number int                 // If you'd want to let other programs see this struct and its members
+    actorName string           // You'd want to name the struct and its members with Capital letter beginning
+    episodes []string          // In this case, only struct is visible but not its items
+    companions []string
+}
+
+func main(){
+    aDoctor := Doctor{
+        number: 3,
+        actorName: "John Pertwee",
+        companions: []string{  // Here I am skipping episodes and its fine
+            "Liz",
+            "Jo",
+            "Sarah",
+        }
+    }
+
+    fmt.Println(aDoctor)
+    fmt.Println(aDoctor.actorName)
+    fmt.Println(aDoctor.companions[1]) // extract item from Slice
+
+}
+```
+-  If you'd want to let other programs see this struct and its members,  You'd want to name the struct and its members with Capital letter beginning.
+
+- Anonymous Struct, which can be used in web communication for accepting return data and forwarding it to another program,
+  just create a anonymous struct:
+
+```go
+
+func main(){
+    aDoctor := struct{name string}{name: "John Pertwee"}
+    fmt.Println(aDoctor)
+    fmt.Println(aDoctor.name)
+}
+
+```
+
+- **Struct Copy** is independent. Unlilke, slices, arrays and maps.
+
+```go
+
+func main(){
+    aDoctor := struct{name string}{name: "John Pertwee"}
+    fmt.Println(aDoctor)
+    fmt.Println(aDoctor.name)
+    anotherDoctor := aDoctor // creates copy
+    anotherDoctor.name = "Tom Baker"
+    fmt.Println(aDoctor.name) // Prints John Pertwee
+    fmt.Println(anotherDoctor.name) // Prints Tom Baker
+}
+```
+
+- You could pass same struct to another name using Pointers and References:
+
+```go
+func main(){
+    aDoctor := struct{name string}{name: "John Pertwee"}
+    fmt.Println(aDoctor)
+    fmt.Println(aDoctor.name)
+    anotherDoctor := &aDoctor // creates pointer to aDoctor
+    anotherDoctor.name = "Tom Baker"
+    fmt.Println(aDoctor.name) // Prints Tom Baker
+    fmt.Println(anotherDoctor.name) // Prints Tom Baker
+}
+```
+
+- Embedding (sort of like Inheritance but does not provide Polymorphism, you can't use one object interchangeably with another)
+
+Syntax 1:
+```go
+type Animal struct{
+    Name string
+    Origin String
+}
+
+type Bird struct{
+    Animal // embedding Animal, it creates "Has A" relation, "Bird Has A Animal" but not "Is a Animal" like traditional inheritance
+    SpeedKPH float32
+    CanFly bool
+}
+
+func main(){
+    b := Bird{}
+    b.Name = "Emu"
+    b.Origin = "Australia"
+    b.SpeedKPH = 48
+    b.CanFly = false
+    fmt.Println(b.Name)
+}
+
+```
+Syntax 2:
+```go
+
+b := Bird{
+    Animal: Animal{Name: "Emu", Origin: "Australia"},
+    SpeedKPH: 48,
+    CanFly: false,
+}
+```
 
 
-Based on [Free GOlang Bootcamp](https://www.youtube.com/watch?v=YS4e4q9oBaU*)
+- Tags:
+
+```go
+tpye Animal struct{
+    Name string `required max: "100"` // makes this required with max length "100"
+    Origin string
+}
+
+func main(){
+    t := reflect.TypeOf(Animal{}) // need to import "reflect" pkg
+    field, _ := t.FieldByName("Name") // extract field from Animal
+    fmt.Println(field.Tag) // This prints tag 'required max:"100"'
+}
+```
+
+
+
+# Control Flow
+
+## If statements
+
+- Basic Syntax:
+
+```go
+
+if <expression>{
+
+}else if <expression{
+
+}else{
+
+}
+
+```
+
+- Initializer Syntax:
+```go
+if pop, ok := map1["key"]; ok{ // we initialize pop, ok and use ok as expression
+    fmt.Println(pop) // pop is also accessible in this scope
+}
+```
+
+- Comparison Operators:
+```go
+==
+<
+>
+<=
+>=
+!=
+```
+- Logical Operators:
+```go
+|| // OR
+&& // AND
+! // NOT
+```
+
+- Floating point or decimal value comparison is tricky as Go has approximation of floating point numbers and not absolute. Hence `==` operator with floating point number is is not a good idea.
+
+
+
+
+## Switch Statements
+
+
+- Syntax:
+```go
+
+func main(){
+    switch <tag>{
+        case <1>:
+        // optionally break  if data doesn't match expectations and you want to exit out of switch before doing remaining `something` below in this particular case
+        // do Something
+        case <2>:
+        // do Something
+        default:
+        // do Something
+    }
+}
+
+```
+- Syntax2:
+```go
+func main(){
+    switch 3{
+        case 1, 5, 10: // useful to compare multiple cases
+        // do Something
+        case 2, 4, 6:
+        // do Something
+        default:
+        // do Something
+    }
+}
+
+```
+
+- Syntax 3:
+
+```go
+func main(){
+    switch i:= 2+3, i{
+        case 1, 5, 10:
+        // do Something
+        case 2, 4, 6:
+        // do Something
+        default:
+        // do Something
+    }
+}
+
+
+```
+- Tagless Syntax:
+
+```go
+i := 10
+switch{
+
+    case i <= 10:
+        // do Something
+    case i <= 20:
+        // do Something
+    default:
+        // do Something
+}
+```
+
+- `fallthrough` 
+
+```go
+i := 10
+switch{
+
+    case i <= 10:
+        // do Something
+        fallthrough //if this case each matched, it continues going through and executing other cases too
+    case i <= 20:
+        // do Something
+    default:
+        // do Something
+}
+```
+
+- Type based switch:
+
+```go
+
+func main(){
+    var i interface{} =1
+    switch i.(type){
+        case int:
+        // do something
+        case float64:
+        // do something
+        case string:
+        // do something
+        case [3]int: // only matches array with 3 elements of int type
+        // do something
+        case []int:
+        // do something
+        default:
+        // do something
+    }
+}
+
+```
+
+
+# Looping
+
+## for loops
+
+### simple loops
+
+- Basic Syntax:
+
+```go
+// option 1
+for i := 0; i < 5; i++{
+
+}
+
+// option 2
+
+for i :=0; i< 5; i = i+2{
+
+}
+
+// INCORRECT way to do option 3 
+for i :=0, j :=0; i<5; i++, j++{}
+
+// CORRECT way
+for i, j := 0, 0; i < 5; i, j = i+1, j+1{} // i,j = i++, j++  -- won't work
+
+```
+
+- You can leave out initialization of variable outside of loop:
+```go
+
+i := 1 // this makes `i` scoped to `main()` function
+for ; i< 5; i++{  // semicolon is still important
+
+}
+fmt.Println(i) // this is valid
+```
+
+- We can drop incrementing value, this is like a `while` loop:
+
+```go
+i := 0
+for ; i<5 ; { // semicolon is still important
+
+    fmt.Println(i)
+    i++
+}
+
+// infinite loop
+for {
+
+    fmt.Println(i)
+    i++
+}
+```
+
+
+### exiting early
+
+- We can use `continue` statement to leave loop early and start over
+
+- We can use `break` if you want to exit loop completely on certain condition. Nested loops need special handling to `break` out, and that is `labels`
+
+```go
+Loop:
+for i :=0 ; i<3 ; i++{
+    for j :=0 ; j<3 ; j++{
+        if true{
+            break Loop // this jumps out of loop
+            // OR continue labelName
+        }
+    }
+}
+
+```
+
+### looping through collection
+
+- Looping through collection:
+```go
+
+for k, v := range collectionName{
+
+}
+
+```
+
+- For slices:
+```go
+s := []int{1,2,3}
+for k,v := range s{
+    fmt.Println(k,v) // prints index and value, in case of maps, prints key:values
+}
+```
+
+- For **strings**, we get `key` as `index` and `value` as `unicode` value for string character.
+
+
+- You can skip using either `key` or `value`:
+
+```go
+for k := range collectionName{ // just keys
+
+}
+
+// OR 
+for _, v := range collectionName{ // just values
+
+}
+```
+
+
+# Defer, Panic and Recover
+
+## Defer
+- `defer` will, as the name suggests, defers the execution of a statement to last. It has _LIFO_ order, like a Stack. It is often good to use `defer` to close _connections_ or _files_.
+
+- Caveat:
+
+```go
+
+func main(){
+    a := "start"
+    defer fmt.Println(a)
+    a = "end"
+}
+// This prints out `start` as the defer uses `eager` evaluation and stores that in memory for the arhuments. So `a= "end"` doesn't affect the deferred print.
+```
+
+
+## Panic
+
+- `panic()` is a function that you can use to `panic` or `raise exception` within your code when you need to raise exceptions.
+
+- Go doesn't always have opinion if something is bad enough for it to `panic` and halt execution, its upto golang developer to decide that and raise panic.
+
+- `Deferred` statements/functions always execute even when a `panic` happens.
+
+```go
+
+func main(){
+    a := "start"
+    defer fmt.Println(a)
+    panic("Bad things happened")
+    a = "end"
+}
+
+/*  Prints:
+start
+panic: Bad things happened
+
+*/
+```
+
+- Defer takes function calls, not a function:
+
+```go
+
+func main(){
+    fmt.Println("start")
+    defer func(){ // deferred anonymous function
+        // do something 
+        fmt.Println("In deferred func")
+    }() // don't forget to call it
+    panic("something bad happened")
+    fmt.Println("end")
+}
+
+
+/* Output:
+start
+in deferred func
+something bad happendd
+*/
+```
+
+##  Recover
+
+
+- We can use `revocer()` function to handle `panic` situation.
+- When application doesn't `panic`, `recover()` will return `nil` otherwise it returns the error that caused the panic.
+
+```go
+
+func main(){
+    fmt.Println("start")
+    defer func(){ // deferred anonymous function
+	if err:= recover(); err !=nil {
+		// do some error handling
+		log.Println("Error:", err)
+	}
+        fmt.Println("In deferred func")
+    }() // don't forget to call it
+    panic("something bad happened")
+
+}
+/* output:
+start
+2009/11/10 23:00:00 Error: something bad happened
+In deferred func
+*/
+
+```
+
+- If you had another function outside of `main()` that `panic` and then `recovers`, the function would stop executing but `main()` would still execute.
+- If you want to continue `panic` again, then you should `recover()` and then call `panic()` again and if calling function was `main()`, main would panic too.
+
+
+
+
+# Pointers
+
+
+## Creating & Dereferencing pointers 
+
+- `Pointers` are special variables that point to address of another variable.
+
+- `&` is called address of operator while `*` is called dereferencing operator that dereferences the pointer.
+
+- Dereferencing operator `*` has _lower precendence_ than `.` operator.
+```go
+
+func main(){
+
+    var a int = 42
+    var b *int = &a // pointer is of type int hence *int and stores &a - which means address of variable a
+    fmt.Println(&a, b) // prints address of a and value of b, which is again address of a
+    fmt.Println(a,*b) // prints value of a and value of a as *b points to value of a
+    a = 27
+    fmt.Println(a, *b) // 27 27
+    *b = 14
+    fmt.Println(a, *b) // 14 14
+}
+```
+
+- __Pointer Arithmatic__ is __not allowed__ in GoLang by default. If you absolutely need it, look at package `unsafe` in golang.
+```go
+a := [3]int{1, 2, 3}
+b := &a[0]
+c := &a[1] - 4 // this causes error as you can't do arithmatic operations on memory addresses, which you may be able to do in `C`. That's because GoLang believes in simplicity and pointer arithmatic can be fairly complex code
+
+```
+
+## The new function
+
+- `new` function can be used to initialize structs. But in this case, it will
+  always cause fields to be `zero value` initialized.
+
+```go
+func main(){
+    var ms *myStruct
+    fmt.Println(ms) // prints <nil>
+    ms = new(myStruct)
+    fmt.Println(ms) // &{0}
+    (*ms).foo = 42 // Dereferencing operator `*` has _lower precendence_ than `.` operator. hence use `()` to get higher prcendence
+    fmt.Println((*ms).foo) // this can be changed to `ms.foo` and Golang will work it out itself
+
+    // (*ms).foo == ms.foo in this case
+
+}
+type myStruct struct{
+    foo int
+}
+```
+
+## Working with nil
+
+- An empty pointer has a special zero value of  `<nil>`
+
+## Types with internal pointers
+
+- Array, struct copy is `value` type, while slices are `reference` or `pointer` type.
+- Maps also have a `pointer` to underlying data and hence are `reference` type.
+
+
+# Functions
+
+
+
+Based on [Free GoLang Bootcamp](https://www.youtube.com/watch?v=YS4e4q9oBaU*)
 
 
