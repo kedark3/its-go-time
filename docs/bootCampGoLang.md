@@ -1104,3 +1104,143 @@ func (g *greeter) greet(){ // pointer receiver as `g` is `*greeter` so you recei
     fmt.Println(g.greeting, g.name)
 }
 ```
+
+
+# Interfaces 
+(Note: Need to learn and practice more of this topic)
+
+- Interfaces are a type, we use `interface` keyword to define it.
+- Interface do not represent data, but represent methods.
+- Interface name should be suffixed with an `er`. In golang there are many single-method interfaces and those are named after method they implement. So for interface with `Write` method, name would be `Writer` for that interface.
+- Implementing interfaces is an implicit operation in Golang. It provides polymorphic behavior.
+- Example1:
+```go
+type Writer interface{
+    //Method(input type)(return type)
+    Write([]byte) (int, error)
+}
+type ConsoleWriter struct{}
+
+func (cw ConsoleWriter) Write(data []byte) (int, error){
+    n, err := fmt.Println(string(data))
+    return n, err
+}
+
+func main(){
+    var w Writer = ConsoleWriter{}
+    w.Write([]byte("Hello Go!"))
+}
+
+```
+
+- Example2, you don't have to use struct to implement interfaces, any type that can have methods can be used:
+```go
+
+type Incrementer interface {
+    Increment() int
+}
+
+type IntCounter int
+
+func (ic *IntCounter) Increment() int{
+    *ic++
+    return int(*ic)
+}
+
+func main(){
+    myInt := IntCounter(0)
+    var inc Incrementer = &myInt
+    for i:=0; i<10; i++{
+        fmt.Println(inc.Increment())
+    }
+}
+
+```
+
+- You cannot directly have interface that is of type `int` or any other primitive type, as that is language builtin type and you can't modify it, you have no control over it.
+
+- `io.Writer` interface is one of the most common interfaces in GoLang.
+
+- Composed Interfaces example:
+```go
+
+package main
+
+import "bytes"
+
+type Writer interface {
+	//Method(input type)(return type)
+	Write([]byte) (int, error)
+}
+type Closer interface {
+	Close() error
+}
+
+type WriterCloser interface{
+    Writer
+    Closer
+}
+type BufferedWriterCloser struct {
+	buffer *bytes.Buffer
+}
+
+func (bw *BufferedWriterCloser) Write(data []byte) (int, error) {
+	// do something
+	return 0, nil
+}
+
+func (bw *BufferedWriterCloser) Close() error {
+
+	// do something
+	return nil
+}
+
+//constructor
+func NewBufferedWriterCloser() *BufferedWriterCloser {
+	return &BufferedWriterCloser{
+		buffer: bytes.NewBuffer([]byte{}),
+	}
+}
+func main() {
+	var w WriterCloser = NewBufferedWriterCloser()
+    w.Write([]byte("Hello"))
+    w.Close()
+}
+
+```
+
+- Empty interface is `interface{}` and it has no methods on it. This can be useful, working with multiple things that are not compatible with one another, you need to apply some logic to determine what it exactly is at later point. EmptyInterfaces are useful but you need to type convert those before you can use them in many cases.
+
+-  Type based switch is usually tied with an Empty Interface to be able to decide what type of value is stored in the interface:
+
+```go
+
+func main(){
+    var i interface{} =1 // or "1" or true
+    switch i.(type){
+        case int:
+        // do something
+        case float64:
+        // do something
+        case string:
+        // do something
+        case [3]int: // only matches array with 3 elements of int type
+        // do something
+        case []int:
+        // do something
+        default:
+        // do something
+    }
+}
+
+```
+
+
+- __Need to Study__ : How do interfaces behave when they have valueReceiver vs pointerReceivers in their method sets. Also type conversions.
+
+## Best Practices
+
+- Use many small interfaces over large interfaces, some examples are `io.Writer, io.Reader, interface{}` - these are most common & powerful interfaces in Go Lang. Use composite interfaces.
+- Don't export interface for types that will be consumed, it allows user to create and implement their own interfaces for types struct.
+- Do export interfaces for types that will be used by package, this is possible because unlike Java/C#, Go lang has implicit implementation of interfaces, you can defer implementation. It allows users to provide their own implementation to the interfaces when they use your library.
+- Design functions and methods to receive interfaces whenever possible instead of concrete types.
