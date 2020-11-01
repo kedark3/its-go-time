@@ -1244,3 +1244,290 @@ func main(){
 - Don't export interface for types that will be consumed, it allows user to create and implement their own interfaces for types struct.
 - Do export interfaces for types that will be used by package, this is possible because unlike Java/C#, Go lang has implicit implementation of interfaces, you can defer implementation. It allows users to provide their own implementation to the interfaces when they use your library.
 - Design functions and methods to receive interfaces whenever possible instead of concrete types.
+
+
+
+# GOROUTINES - Concurrency in GoLang
+
+## Create GoRoutines
+
+- `go` keyword before a function call instructs golang to spin off a new "green" thread.
+
+- Most tradtional programming languages used OS threads which means they have individual call stack for each thread and those are very very large.
+
+- In GoLang, it follows something that was seen in Erlang. It is called `Green Thread`. This model would be beneficial as opposed to other languages where creation of thread could be expensive operation, GoLang has a scheduler that takes turns for each GoRoutine and maps it to OS threads for a period of time.
+
+- GOROUTINE is basically abstraction of a thread.
+- GoROUTINES start with very small stack spaces, very cheap to create/destroy and helps us not having to deal with low level OS threads.
+
+- `main()` function itself also runs as a GOROUTINE.
+
+```go
+
+package main
+
+func main(){
+    go sayHello() // `go` makes it a goroutine
+    // This code exits before "Hello" could be printed as
+    // after spawning GO routine, application had nothing else to do.
+
+}
+
+func sayHello(){
+
+    fmt.Println("Hello")
+}
+
+```
+- Another example of GOROUTINE is using it with an anonymous function: 
+```go
+
+func main(){
+
+    var msg = "Hello"
+    go func (){
+        fmt.Println(msg)
+    }()
+    time.Sleep(100 * time.Millisecond) // this avoids from main function exiting too quickly before giving GOROUTINE a chance to execute, although it is not a best practice
+}
+```
+
+- Creating dependencies on variables outside goroutines can cause issues:
+
+```go
+
+func main(){
+
+    var msg = "Hello"
+    go func (){
+        fmt.Println(msg)
+    }()
+    msg = "goodbye!"
+    time.Sleep(100 * time.Millisecond) // this avoids from main function exiting too quickly before giving GOROUTINE a chance to execute, although it is not a best practice
+}
+
+// OUTPUT:
+// goodbye
+
+// This maybe called a Race Condition, and its bad. This happens because goroutine maybe executed slightly after `msg` is modiefied
+// go scheduler may not interrupt main function even if Goroutine was spawned
+```
+
+- To fix race condition above, we could do:
+```go
+
+func main(){
+
+    var msg = "Hello"
+    go func (msg string){ // here we pass by value, a copy of original msg variable
+        fmt.Println(msg)
+    }(msg)
+    msg = "goodbye!" // hence this doesn't override msg in the anonymous function 
+    time.Sleep(100 * time.Millisecond) // this avoids from main function exiting too quickly before giving GOROUTINE a chance to execute, although it is not a best practice
+}
+// OUTPUT:
+// hello
+```
+
+
+## Synchronizations
+
+
+- To avoid the problem of application exiting before GOROUTINE is executed, we could use following instead of `time.Sleep()`: 
+
+```go
+
+var wg = sync.WaitGroup{} // from sync package
+
+func main(){
+    var msg = "Hello"
+    wg.Add(1) // adding 1 to waitGroup for 1 goRoutine we are about to spawn
+    go func(msg string){
+        fmt.Println(msg)
+        wg.Done() // this will decrement value in wait group, in this case 1 - 1 = 0
+    }
+    msg = "goodbye"
+    wg.Wait() // this will wait for all the Goroutines to decrement waitgroup object until its down to 0
+
+}
+```
+
+-  Another little more complex example of Goroutines waitGroups sync is:
+```go
+
+var wg = sync.WaitGroup{}
+var counter = 0
+
+func main(){
+    for i:=0; i<10; i++{
+        wg.Add(2)
+        go sayHello()
+        go increment()
+    }
+    wg.Wait()
+}
+
+
+func sayHello(){
+    fmt.Printf("Hello $%v\n", counter)
+    wg.Done()
+}
+
+func increment(){
+    counter++
+    wg.Done()
+}
+
+/*Output:
+
+Hello $1
+Hello $2
+Hello $3
+Hello $8
+Hello $5
+Hello $5
+Hello $7
+Hello $10
+Hello $9
+
+// Order of printing above is not reliable as both functions are spawned as goroutines and they keep running against one another in a race condition.
+*/
+```
+
+- Synchronizing with Mutex(Mutually Exclusive locks):
+```go
+
+var wg = sync.WaitGroup{}
+var counter = 0
+var m = sync.RWMutex{} // Allows multiple readers, but only one writer
+                       // if writer wants to write, it has to wait for all readers to be done reading.
+
+func main(){
+    for i:=0; i<10; i++{
+        wg.Add(2)
+        go sayHello()
+        go increment()
+    }
+    wg.Wait()
+}
+
+
+func sayHello(){
+    m.RLock() // ReadLock
+    fmt.Printf("Hello $%v\n", counter)
+    m.RUnlock() // ReadUnlock
+    wg.Done()
+}
+
+func increment(){
+    m.Lock() // Write Lock
+    counter++
+    m.Unlock() //Write Unlock
+    wg.Done()
+}
+
+/* Output:
+//Run1 could get
+Hello $1
+Hello $2
+.
+.
+.
+.Hello $2
+
+// Run2 could get 
+
+
+Hello $1
+Hello $2
+Hello $3
+Hello $3
+Hello $4
+Hello $4
+Hello $4
+.
+.
+.
+
+// As you can see order is preserved but output is still unpredictable. This is because Mutexes are still within Go Routine and Go Routines don't have particular order of execution.
+*/ 
+
+```
+
+- To fix this we can modify the Mutexes and moved out of go routines(although this way we are kind of destroying concurrency by forcing synchronization, this may perform worse than not having any goroutines at all):
+
+```go
+
+var wg = sync.WaitGroup{}
+var counter = 0
+var m = sync.RWMutex{} // Allows multiple readers, but only one writer
+                       // if writer wants to write, it has to wait for all readers to be done reading.
+
+func main(){
+    for i:=0; i<10; i++{
+        wg.Add(2)
+        m.RLock() // ReadLock
+        go sayHello()
+        m.Lock() // Write Lock
+        go increment()
+    }
+    wg.Wait()
+}
+
+
+func sayHello(){
+    fmt.Printf("Hello $%v\n", counter)
+    m.RUnlock() // ReadUnlock
+    wg.Done()
+}
+
+func increment(){
+    counter++
+    m.Unlock() //Write Unlock
+    wg.Done()
+}
+
+/* OUTPUT:
+
+Hello $0
+Hello $1
+Hello $2
+Hello $3
+Hello $4
+Hello $5
+Hello $6
+Hello $7
+Hello $8
+Hello $9
+
+// Now we can re-run this over and over again and order is reliably preserved
+*/
+```
+
+## Parallelism
+
+- `GOMAXPROCS` is a tunable in Golang that you can use. Minimum it can be set to 1 thread per core. But if you need to go high you could. But going too high can cause other problems, like you may not have enough memory to spawn 10s or 100s of threads.
+
+```go
+package main
+
+import (
+	"fmt"
+	"runtime"
+)
+
+func main() {
+	runtime.GOMAXPROCS(1) // this sets maxprocs to only 1 thread and runs application single threaded way
+	fmt.Printf("Threads: %v \n", runtime.GOMAXPROCS(-1)) // prints 1, but if we remove previous line, we get output equal number of cores on the system, passing "-1" as arg is just letting us investigate the current value set for GOMAXPROCS
+}
+
+```
+
+
+
+
+## Best Practices
+
+- GOROUTINES in GoLang are very powerful, but don't create goroutines in libraries, let consumer control concurrency.
+- When you create a goroutine, know how it will end, avoid suble memory leaks. If you have a goroutine that doesn't end will keep eating resources forever.
+- Check for race conditions at compile time. use `go run/build` commands with `-race` flag.
