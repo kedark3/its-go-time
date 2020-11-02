@@ -434,6 +434,8 @@ type Doctor struct{
 }
 ```
 
+- Structs with nothing inside it is special in GoLang where `struct {}` doesn't require any memory allocation.
+
 - Initialization:
 
 ```go
@@ -1531,3 +1533,368 @@ func main() {
 - GOROUTINES in GoLang are very powerful, but don't create goroutines in libraries, let consumer control concurrency.
 - When you create a goroutine, know how it will end, avoid suble memory leaks. If you have a goroutine that doesn't end will keep eating resources forever.
 - Check for race conditions at compile time. use `go run/build` commands with `-race` flag.
+
+
+
+# Channels
+
+## Basics
+
+- Mostly used within the context of go routines, as channels are designed to synchronize data across go routines.
+
+- Initialization requires `make()` call with type `chan` and data-type which will be flowing through the channel.
+
+- For a channel variable `ch` if data is going to flow into the channel, use `ch <- <data>` syntax, while if you are receiving data from channel use `var v:= <- ch` syntax.
+
+```go
+var wg = sync.WaitGroup{}
+
+func main(){
+    ch := make(chan int) // make (chan <data-type>)
+    wg.Add(2)
+    go func (){
+        i := <- ch
+        fmt.Println(i) // prints 42
+        wg.Done()
+    }()
+    go func() {
+        i := 42
+        ch <- i
+        wg.Done()
+    }()
+    wg.Wait()
+}
+
+```
+
+## Restricting Data Flow
+
+- Some times data generation and consumption can't be synchornous, as an example there could be lot of data generated and receiver can only consume so much.
+
+```go
+var wg = sync.WaitGroup{}
+
+func main(){
+    ch := make(chan int) // make (chan <data-type>)
+    for j := 0; j < 5; j++{
+        wg.Add(2)
+        go func (){
+            i := <- ch
+            fmt.Println(i) // prints 42
+            wg.Done()
+        }()
+        go func() {
+            i := 42
+            ch <- i
+            i = 27 // this does not affect value that was sent through the channel
+            wg.Done()
+        }()
+    }
+    
+    wg.Wait()
+}
+```
+
+- In above example, if we move out the anonymous function that prints(i) out of the loop, it will only be single receiver while there will be 5 sender goroutines. That will result in `42` being printed only 1 time and rest of the 4 goroutines with go into a `Deadlock`. As sender will get blocked if there is already data into the channel that hasn't been processed by a receiver.
+
+```go
+var wg = sync.WaitGroup{}
+
+func main(){
+    ch := make(chan int) // make (chan <data-type>)
+    wg.Add(2)
+        go func (){
+            i := <- ch
+            fmt.Println(i) // prints 42
+            wg.Done()
+        }()
+    for j := 0; j < 5; j++{
+        go func() {
+            i := 42
+            ch <- i
+            i = 27 // this does not affect value that was sent through the channel
+            wg.Done()
+        }()
+    }
+    
+    wg.Wait()
+}
+
+/*output
+42
+fatal error: all goroutines are asleep - deadlock!
+*/
+```
+
+- Rarely you may have 2 goroutines both reading and writing data to channels for one another in full duplex communication, but more often you'd wanna dedicate goroutines to either read from or write to the channel.
+
+- *Send-only* and *Receive-only* channels:
+
+```go
+var wg = sync.WaitGroup{}
+
+func main(){
+    ch := make(chan int) // make (chan <data-type>)
+    wg.Add(2)
+    go func (ch <-chan int){ // making this function only accept a channel that receives the data
+        i := <- ch
+        fmt.Println(i) // prints 42
+        ch <-  27  // this will raise an error as this function takes receive-only channel and here its trying to send data through the channel
+        wg.Done()
+    }(ch) // although we are passing bi-directional channel that gets casted into uni-directional channel at run-time
+    go func(ch chan<- int) { // this is send-only channel parameter
+        i := 42
+        ch <- i
+        wg.Done()
+    }(ch)
+    wg.Wait()
+}
+
+```
+
+## Buffered Channels
+
+- `Deadlock` from above can be fixed using a bufferred-channel.
+- Second argument in `make()` function is a bufferred channel size, which allows you to have multiple items sent to channel.
+- This type of channel allows you to have receivers to be receiving slowly even if data may be sent in bursts or higher rate, as long as buffer does't overflow.
+```go
+
+var wg = sync.WaitGroup{}
+
+func main() {
+	ch := make(chan int, 50) // make (chan <data-type>, <buffer-size>)
+    wg.Add(2)
+    go func() {
+		i := <-ch
+        fmt.Println(i) // prints 42
+        i = <-ch // if we don't add this and the following line, datam `27` is lost
+		fmt.Println(i) // prints 27
+		wg.Done()
+	}()
+
+    go func() {
+        ch <- 42
+        ch <- 27
+        wg.Done()
+    }()
+
+	wg.Wait()
+}
+```
+
+## For...range loops with Channels
+
+- Better way to keep accepting input from a channel is to use a loop.
+
+```go
+
+var wg = sync.WaitGroup{}
+
+func main() {
+	ch := make(chan int, 50) // make (chan <data-type>, <buffer-size>)
+    wg.Add(2)
+    go func() {
+		for i := range ch{
+            fmt.Println(i) // prints 42 then 27, then Deadlock happens
+        }
+        wg.Done()
+	}()
+
+    go func() {
+        ch <- 42
+        ch <- 27
+        wg.Done()
+    }()
+
+	wg.Wait()
+}
+
+```
+
+## Closing Channels
+
+- Above deadlock happened as channel was open and for range loop kept waiting for data on the channel.
+- For loop doesn't know how many messages are on the channel.
+- We need to close the channel once we are done.
+- If data is sent on closed channel, `panic: send on closed channel` happens. Once channel is closed it can't be reopened.
+- Only way to know if a channel is closed is try to send data and to detect the `panic`.
+```go
+
+var wg = sync.WaitGroup{}
+
+func main() {
+	ch := make(chan int, 50) // make (chan <data-type>, <buffer-size>)
+    wg.Add(2)
+    go func() {
+		for i := range ch{
+            fmt.Println(i) // prints 42 then 27, then channel is closed in this case, terminate the loop
+        }
+        wg.Done()
+	}()
+
+    go func() {
+        ch <- 42
+        ch <- 27
+        close(ch)
+        wg.Done()
+    }()
+
+	wg.Wait()
+}
+
+```
+- Use `,ok` syntax to understand if channel is closed, if you aren't using a `for..range` loop, which can happen when you are receiving data from channel and you are not in a loop, but in below example, better way is still to use `for..range` loop:
+
+```go
+
+var wg = sync.WaitGroup{}
+
+func main() {
+	ch := make(chan int, 50) // make (chan <data-type>, <buffer-size>)
+    wg.Add(2)
+    go func() {
+		for {
+            if i, ok := <- ch; ok{
+                fmt.Println(i) // prints 42 then 27, then channel is closed in this case, terminate the loop
+            }else{
+                break
+            }
+        }
+        wg.Done()
+	}()
+
+    go func() {
+        ch <- 42
+        ch <- 27
+        close(ch)
+        wg.Done()
+    }()
+
+	wg.Wait()
+}
+
+```
+
+- It is important to have graceful shutdown of all goroutines. In the following example of logger, `logger()` will be forced to shutdown when `main()` goroutine exits, as it will be otherwise countinuing to wait in loop forever. And this is not a good implementation.
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+const (
+	logInfo    = "INFO"
+	logWarning = "WARNING"
+	logError   = "ERROR"
+)
+
+type logEntry struct {
+	time     time.Time
+	severity string
+	message  string
+}
+
+var logCh = make(chan logEntry, 50)
+
+func main() {
+	go logger()
+	logCh <- logEntry{time.Now(), logInfo, "App is starting"}
+	logCh <- logEntry{time.Now(), logInfo, "App is shutting down"}
+	time.Sleep(100 * time.Microsecond)
+}
+
+func logger() {
+	for entry := range logCh {
+		fmt.Printf("%v - [%v]%v\n", entry.time.Format("2006-01-02 3:04"), entry.severity, entry.message)
+	}
+}
+
+```
+- To fix above problem we could use `defer` statement to close the channel so the function `logger()` will stop looping gracefully.
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+const (
+	logInfo    = "INFO"
+	logWarning = "WARNING"
+	logError   = "ERROR"
+)
+
+type logEntry struct {
+	time     time.Time
+	severity string
+	message  string
+}
+
+var logCh = make(chan logEntry, 50)
+
+func main() {
+	go logger()
+	defer close(logCh)
+	logCh <- logEntry{time.Now(), logInfo, "App is starting"}
+	logCh <- logEntry{time.Now(), logInfo, "App is shutting down"}
+	time.Sleep(100 * time.Microsecond)
+}
+
+func logger() {
+	for entry := range logCh {
+		fmt.Printf("%v - [%v]%v\n", entry.time.Format("2006-01-02 3:04"), entry.severity, entry.message)
+	}
+}
+
+```
+- There is another way to do this though, using `select` statement and a Signal-only channel.
+
+- A signal only channle is `var signalCh = make(chan struct{})` As `struct{}` needs no memory allocation.
+
+- Following example shows use of `select` statement and `signal-only` channel that you may see in many places in Golang code.
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+const (
+	logInfo    = "INFO"
+	logWarning = "WARNING"
+	logError   = "ERROR"
+)
+
+type logEntry struct {
+	time     time.Time
+	severity string
+	message  string
+}
+
+var logCh = make(chan logEntry, 50)
+var signalCh = make(chan struct{})
+
+func main() {
+	go logger()
+	logCh <- logEntry{time.Now(), logInfo, "App is starting"}
+	logCh <- logEntry{time.Now(), logInfo, "App is shutting down"}
+	time.Sleep(100 * time.Microsecond)
+	signalCh <- struct{}{}  // Initializing struct of type struct{} as {} hence syntax struct{}{}
+}
+func logger() {
+	for {
+		select { // ordering of cases in select statement doesn't matter
+		case entry := <-logCh:
+			fmt.Printf("%v - [%v]%v\n", entry.time.Format("2006-01-02 3:04"), entry.severity, entry.message)
+		case <-signalCh:
+			break
+		}
+
+	}
+}
+```
