@@ -83,6 +83,24 @@ func main() {
 	slice := array2[:]
 	fmt.Println(unsafe.Sizeof(array2), unsafe.Sizeof(slice))
 
+	// SLICE CAPACITY GOTCHAS
+
+	capAges := []int{1, 2, 3}
+	capAges = capAges[0:0]             // [] 3 - since slice starts and ends at 0th element, it is empty
+	fmt.Println(capAges, cap(capAges)) // but since since it starts at 0th element, it can see how big is backing array from that point onward,
+	// which in this case is 3 items long
+	// but if we change it like this:
+	capAges = capAges[0:cap(capAges)]  // OR capAges[0:3]             // it can see all the elements, as we extended the slice
+	fmt.Println(capAges, cap(capAges)) // and it still has capacity of 3  output would be then : [1 2 3] 3
+	// if we slice it like:
+	capAges = capAges[3:cap(capAges)]
+	fmt.Println(capAges, cap(capAges)) // it prints [] 0
+	// now if we try to retrieve backing array as :
+	capAges = capAges[0:cap(capAges)]
+	fmt.Println(capAges, cap(capAges)) // it prints [] 0 , we can't extend slice backwards to recover lost elements
+
+	// capAges = capAges[0 : cap(capAges)+1] // this will panic as slice bounds out of range [:4] with capacity 3
+
 }
 
 func change(data []string) { // go creates copy of original slice and sends it to the function
