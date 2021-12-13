@@ -2,8 +2,7 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/kedark3/its-go-time/exercises/16-slices/23-limit-backing-array-sharing/api"
+	"main/exercises/16-slices/23-limit-backing-array-sharing/api"
 )
 
 // ---------------------------------------------------------
