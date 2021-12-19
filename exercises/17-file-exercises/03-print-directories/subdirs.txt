@@ -1,0 +1,4 @@
+/home/kkulkarni/go/src/github.com/kedark3/its-go-time/exercises/17-file-exercises/03-print-directories
+	test1/
+	test2/
+	test3/
