@@ -5,39 +5,36 @@ import (
 	"time"
 
 	"github.com/inancgumus/screen"
+	"github.com/mattn/go-runewidth"
 )
 
 // ---------------------------------------------------------
-// EXERCISE: Find the Bug
+// EXERCISE: Previous positions
 //
-//  As I've annotated in the lectures, there is a bug
-//  in this code. Please find the bug and fix it.
+//  Let's optimize the program once more. This time you're
+//  going to optimize the clearing off the previous positions.
+//
+//  1. Find the code below marked as "remove the previous ball"
+//
+//  2. Instead of clearing every position on the board to false,
+//     only set the previous position to false. So, don't use
+//     a loop, remove it.
+//
+//  3. Change the velocity of the ball like so:
+//
+//     vx, vy = 5, 2
+//
+//  4. Run the program and solve the problem
 //
 //
-// HINT #1
+// HINT
 //
-//  💀 Read this only if you get stuck.
-//
-//  Print the width*height and the capacity of the drawing buffer
-//  after a single drawing loop ends. You might be surprised.
-//
-//
-// HINT #2
-//
-//  💀 Read this only if you get stuck.
-//
-//  The bug is in the drawing buffer. It doesn't include the
-//  newline and space characters when creating the buffer. So
-//  the buffer is not large enough to hold all the characters.
-//  So new backing arrays are getting allocated.
+//  Don't forget saving the previous position.
 //
 // ---------------------------------------------------------
 
 func main() {
 	const (
-		width  = 50
-		height = 10
-
 		cellEmpty = ' '
 		cellBall  = '⚾'
 
@@ -47,10 +44,20 @@ func main() {
 
 	var (
 		px, py int    // ball position
-		vx, vy = 1, 1 // velocities
+		vx, vy = 5, 2 // velocities
 
 		cell rune // current cell (for caching)
 	)
+
+	// you can get the width and height using the screen package easily:
+	width, height := screen.Size()
+
+	// get the rune width of the ball emoji
+	ballWidth := runewidth.RuneWidth(cellBall)
+
+	// adjust the width and height
+	width /= ballWidth
+	height-- // there is a 1 pixel border in my terminal
 
 	// create the board
 	board := make([][]bool, width)
@@ -58,33 +65,38 @@ func main() {
 		board[column] = make([]bool, height)
 	}
 
-	// create a drawing buffer
+	// drawing buffer length
 	// *2 for extra spaces
 	// +1 for newlines
-	buf := make([]rune, 0, (width*2+1)*height)
+	bufLen := (width*2 + 1) * height
+
+	// create a drawing buffer
+	buf := make([]rune, 0, bufLen)
 
 	// clear the screen once
 	screen.Clear()
 
 	for i := 0; i < maxFrames; i++ {
+		// remove the previous ball
+		board[px][py] = false
 		// calculate the next ball position
 		px += vx
 		py += vy
 
 		// when the ball hits a border reverse its direction
-		if px <= 0 || px >= width-1 {
+		if px <= 0 || px >= width-5 {
 			vx *= -1
 		}
-		if py <= 0 || py >= height-1 {
+		if py <= 0 || py >= height-2 {
 			vy *= -1
 		}
 
 		// remove the previous ball
-		for y := range board[0] {
-			for x := range board {
-				board[x][y] = false
-			}
-		}
+		// for y := range board[0] {
+		// for x := range board {
+		// board[x][y] = false
+		// 	}
+		// }
 
 		// put the new ball
 		board[px][py] = true

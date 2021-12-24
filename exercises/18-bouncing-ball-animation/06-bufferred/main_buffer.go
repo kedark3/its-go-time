@@ -18,7 +18,9 @@ func main() {
 
 	var x, y, oldX, oldY int
 	var reverseX, reverseY bool
-	buf := make([]rune, 0, w*h)
+	// *2 for extra spaces
+	// +1 for newlines
+	buf := make([]rune, 0, (w*2+1)*h) // making buffer with right size beforehand avoids allocation of the backing array in append calls below
 	for i := 0; i < 1e3; i++ {
 		buf = buf[:0]
 		board[x][y] = true
@@ -46,14 +48,16 @@ func main() {
 		for i := range board {
 			for j := range board[0] {
 				if board[i][j] {
-					buf = append(buf, ball)
+					buf = append(buf, ball) // using append here instead of fmt.Println would be less expensive
 				} else {
+					// same here like above, in exercise 07-noBuffer we use print statements which is less effective,
+					//it has no buffer
 					buf = append(buf, ' ')
 				}
 			}
 			buf = append(buf, '\n')
 		}
-		fmt.Println(string(buf))
+		fmt.Println(string(buf)) // here we finally print all at once
 		board[oldX][oldY] = false
 		time.Sleep(time.Second / 32)
 		fmt.Println("\033[H\033[2J")

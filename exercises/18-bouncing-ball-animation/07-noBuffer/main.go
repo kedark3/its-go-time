@@ -3,11 +3,14 @@ package main
 import (
 	"fmt"
 	"time"
+
+	"github.com/inancgumus/screen"
 )
 
 func main() {
-	w, h := 50, 10
+	w, h := screen.Size()
 	board := make([][]bool, h)
+	w = w / 2 // Ball emoji width is 2 characters, so reduce total width by 2 so as to avoid overflow of ball across screen
 	for row := range board {
 		board[row] = make([]bool, w)
 		fmt.Println(row)
@@ -45,13 +48,13 @@ func main() {
 				if board[i][j] {
 					fmt.Print(ball)
 				} else {
-					fmt.Print("   ")
+					fmt.Print("  ")
 				}
 			}
 			fmt.Println()
 		}
 		board[oldX][oldY] = false
-		time.Sleep(time.Second / 32)
+		time.Sleep(time.Second / 20)
 		fmt.Println("\033[H\033[2J")
 	}
 
