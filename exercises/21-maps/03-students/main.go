@@ -111,6 +111,13 @@ func main() {
 		fmt.Printf("\t\t + %s \n", s)
 	}
 
+	// using Maps as sets
+	// Any key that is not in the map would return false by default so we can use this fact to check membership of a key in the set
+	// m["kk"] would be true, m["john"] would yield false. So its similar to `"kk" in set` of python
+	m := map[string]bool{"kk": true, "tesla": true}
+	if m["kk"] && m["tesla"] {
+		fmt.Println("KK has Tesla")
+	}
 }
 
 /* see benchmark results for the same(MakeCopy vs Append cloning methods - both didn't come out as conclusive winner):
